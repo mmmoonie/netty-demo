@@ -40,10 +40,10 @@ class MultiplexerTimeServerThread implements Runnable {
 
     public MultiplexerTimeServerThread(int port) {
         try {
-            selector = Selector.open();
             socketChannel = ServerSocketChannel.open();
             socketChannel.configureBlocking(false);
             socketChannel.socket().bind(new InetSocketAddress(port), 1024);
+            selector = Selector.open();
             socketChannel.register(selector, SelectionKey.OP_ACCEPT);
             System.out.println("the time server is start in port: " + port);
         } catch (IOException e) {
