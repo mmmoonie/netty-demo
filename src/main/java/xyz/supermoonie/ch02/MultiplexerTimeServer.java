@@ -65,7 +65,6 @@ class MultiplexerTimeServerThread implements Runnable {
                 Iterator<SelectionKey> it = selectionKeys.iterator();
                 SelectionKey key = null;
                 while (it.hasNext()) {
-                    System.out.println("yes yes yes");
                     key = it.next();
                     it.remove();
                     try {
@@ -79,7 +78,6 @@ class MultiplexerTimeServerThread implements Runnable {
                         }
                     }
                 }
-                System.out.println("no no no");
             } catch (Throwable e) {
                 e.printStackTrace();
             }
