@@ -217,6 +217,21 @@ NIO 2.0的异步套接字通道死真正的异步非阻塞I/O，对应于UNIX网
 
 ### 3.1 Netty 服务端开发
 
+[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch03/TimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch03/TimeServer.java)
 
+### 3.2 Netty 客户端开发
+
+[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch03/TimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch03/TimeClient.java)
+
+## 第四章 TCP 粘包/拆包问题的解决之道
+
+### 4.1 TCP 粘包/拆包
+
+#### 4.1.1 TCP 粘包/拆包问题说明
+
+假设客户端发送了两个数据包 D1 和 D2 给服务端，由于服务端一次读取的字节数是不确定的，所以有以下几种情况：
+
+1. 服务端分两次读取到了两个独立的数据包，分别是 D1 和 D2 ，没有粘包也没有拆包
+2. ​
 
 
