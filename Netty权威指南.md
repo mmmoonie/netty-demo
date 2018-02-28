@@ -229,9 +229,74 @@ NIO 2.0的异步套接字通道死真正的异步非阻塞I/O，对应于UNIX网
 
 #### 4.1.1 TCP 粘包/拆包问题说明
 
+![4-1.PNG](https://github.com/mmmoonie/netty-demo/blob/master/image/4-1.PNG?raw=true)
+
 假设客户端发送了两个数据包 D1 和 D2 给服务端，由于服务端一次读取的字节数是不确定的，所以有以下几种情况：
 
 1. 服务端分两次读取到了两个独立的数据包，分别是 D1 和 D2 ，没有粘包也没有拆包
-2. ​
+2. 服务端一次接收到了两个数据包，D1 和 D2 粘合在一起，被称为 TCP 粘包
+3. 服务端分两次读到了两个数据包，第一次读取了完整的 D1 包和 D2 包的部分内容，第二次读取到了 D2 包的剩余内容，这被称为 TCP 拆包
+4. 服务端分两次读到了两个数据包，第一次读取到了 D1 包的部分内容，第二次读取到了 D1 包的剩余内容和 D2 包的整包
+5. 如果服务端 TCP 接受滑窗非常小，而数据包 D1 和 D2 非常大，服务器可能需要多次才能将 D1 和 D2 包接收完全，期间发生多次拆包
+
+#### 4.1.2 TCP 粘包/拆包发生的原因
+
+1. 应用程序写入数据的字节大小大于套接字缓冲区的大小
+2. 进行 MSS 大小的 TCP 分段。MSS 是最大报文段长度的缩写。MSS是TCP报文段中的数据字段的最大长度。数据字段加上 TCP 首部才等于整个的 TCP 报文段。所以MSS并不是TCP报文段的最大长度，而是：MSS = TCP 报文段长度 - TCP 首部长度
+3. 以太网的 payload 大于 MTU 进行 IP 分片。MTU 指：一种通信协议的某一层上面所能通过的最大数据包大小。如果IP层有一个数据包要传，而且数据的长度比链路层的 MTU 大，那么 IP 层就会进行分片，把数据包分成若干片，让每一片都不超过 MTU。注意，IP 分片可以发生在原始发送端主机上，也可以发生在中间路由器上。
+
+#### 4.1.3 粘包问题的解决策略
+
+1. 消息定长
+2. 在包尾增加回车换行符进行分割，比如 FTP 协议
+3. 将消息分为消息头和消息体，消息头中包含消息体总长度的字段
+4. 更复杂的应用层协议
+
+### 4.2 未考虑 TCP 粘包导致功能异常的案例
+
+#### 4.2.1 TimeServer
+
+[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/TimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/TimeServer.java)
+
+#### 4.2.2 TimeClient
+
+[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/TimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/TimeClient.java)
+
+### 4.3 利用 LineBasedFrameDecoder 解决 TCP 粘包问题
+
+#### 4.3.1 支持 TCP 粘包的 LineBasedFrameDecoderTimeServer
+
+[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/LineBasedFrameDecoderTimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/LineBasedFrameDecoderTimeServer.java)
+
+#### 4.3.2 支持 TCP 粘包的 LineBaseFrameDecoderTimeClient
+
+[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/LineBaseFrameDecoderTimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/LineBaseFrameDecoderTimeClient.java)
+
+#### 4.3.3 LineBasedFrameDecoder 与 StringDecoder 的原理分析 
+
+LineBasedFrameDecoder 的工作原理是它依次遍历 ByteBuf 中的可读字节，判断看是否有 "\n" 或者 "\r\n"，如果有，就以此位置为结束位置，从可读索引到结束位置区间的字节就组成了一行。它是以换行符为结束标志的解码器，支持携带结束符或者不携带结束符两种编码方式，同时支持配置单行的最大长度。如果连续读取到最大长度后仍没有发现换行符，就会抛出异常，同时忽略掉之前读到的异常流码。
+
+StringDecoder 的功能就是将接收到的对象转换成字符串，然后继续调用后面的 Handler
+
+### 第五章 分隔符和定长解码器的应用
+
+#### 5.1 DelimiterBasedFrameDecoder 开发
+
+DelimiterBasedFrameDecoder 可以自动完成以分隔符作为流码结束标识的消息的解码
+
+[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/DelimiterBasedFrameDecoderServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/DelimiterBasedFrameDecoderServer.java)
+
+[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/DelimiterBasedFrameDecoderClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/DelimiterBasedFrameDecoderClient.java)
+
+#### 5.2 FixedLengthFrameDecoder 开发
+
+FixedLengthFrameDecoder 是固定长度解码器，它能够按照指定的长度对消息进行自动解码
+
+[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/FixedLengthFrameDecoderServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/FixedLengthFrameDecoderServer.java)
+
+### 第六章 编解码技术
+
+
+
 
 
