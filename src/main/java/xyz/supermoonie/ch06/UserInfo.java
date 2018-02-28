@@ -42,4 +42,16 @@ public class UserInfo implements Serializable {
         buffer.get(result);
         return result;
     }
+
+    public byte[] encode(ByteBuffer buffer) {
+        buffer.clear();
+        byte[] value = this.userName.getBytes();
+        buffer.putInt(value.length);
+        buffer.put(value);
+        buffer.putInt(this.userId);
+        buffer.flip();
+        byte[] result = new byte[buffer.remaining()];
+        buffer.get(result);
+        return result;
+    }
 }
