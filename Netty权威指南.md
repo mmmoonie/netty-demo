@@ -299,8 +299,65 @@ FixedLengthFrameDecoder 是固定长度解码器，它能够按照指定的长�
 ### 6.1 Java 序列化的缺点
 
 1. 无法跨语言
+
 2. 序列化后的码流太大
+
+   基于 ByteBuffer 的通用二进制编码技术与传统的 JDK 序列化后的码流大小对比
+
+   [https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/UserInfo.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/UserInfo.java)
+
+   [https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/TestUserInfo.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/TestUserInfo.java)
+
+   影响编解码优劣的因素：
+
+   - 是否支持跨语言，支持的语言种类是否丰富
+   - 编码后的码流大小
+   - 编解码的性能
+   - 类库是否小巧，API 使用是否方便
+   - 使用者需要手工开发的工作量和难度
+
 3. 序列化性能太低
+
+   [https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/PerformTestUserInfo.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/PerformTestUserInfo.java)
+
+
+### 6.2 业界主流的编解码框架
+
+#### 6.2.1 Google 的 Protobuf 
+
+特点：
+
+- 结构化数据格式（xml、json 等）
+- 高效的编解码性能
+- 语言无关、平台无关、扩展性好
+- 官方支持 java、c++ 和 python 三种语言
+
+#### 6.2.2 Facebook 的 Thrift
+
+- Thrift 是为了解决系统间大量数据的传输通信以及系统之间语言环境不同需要跨平台的特性。
+- Thrift 支持 C++、C#、Cocoa、Erlang、Haskell、Java、Ocami、Perl、PHP、Python、Ruby 和 SmallTack
+- Thrift 适合于静态的数据交换，需要首先确定好它的数据结构，当数据结构发生变化时，必须重新编辑 IDL 文件，生成代码和编译，这一点是弱项。
+
+#### 6.2.3 JBoss Marshalling
+
+相对于 java 序列化，有以下优点：
+
+- 可插拔的类解析器，提供更加便捷的类加载定制策略，通过一个接口即可实现定制
+- 可插拔的对象替换技术，不需要通过继承的方式
+- 可插拔的预定义类缓存表，可以减小序列化的字节数组长度，提升常用类型的对象序列化性能
+- 无需实现 java.io.Serializable 接口，即可实现 java 序列化
+- 通过缓存技术提升对象的序列化性能
+
+## 第七章 MessagePack 编解码
+
+MessagePack 是一个高效的二进制序列化框架，它像 JSON 一样支持不同语言间的数据交换，但是它的性能更快，序列化后的码流也更小。
+
+### 7.1 MessagePack 编码器和解码器开发
+
+#### 7.1.1 MessagePack 编码器开发
+
+
+
 
 
 
