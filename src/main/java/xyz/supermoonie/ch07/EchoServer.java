@@ -59,20 +59,7 @@ public class EchoServer {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            final ChannelFuture f = ctx.writeAndFlush(msg);
-            f.addListener(new ChannelFutureListener() {
-
-                @Override
-                public void operationComplete(ChannelFuture future) {
-                    assert f == future;
-                    ctx.close();
-                }
-            });
-        }
-
-        @Override
-        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-            ctx.flush();
+            ctx.writeAndFlush(msg);
         }
 
         @Override
