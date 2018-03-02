@@ -1,18 +1,21 @@
-package xyz.supermoonie.ch05;
+package xyz.supermoonie.guid.ch04;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.FixedLengthFrameDecoder;
+import io.netty.handler.codec.LineBasedFrameDecoder;
 import io.netty.handler.codec.string.StringDecoder;
 
 /**
  *
  * Created by Administrator on 2018/2/28 0028.
  */
-public class FixedLengthFrameDecoderServer {
+public class LineBasedFrameDecoderTimeServer {
+
     public static void main(String[] args) throws Exception {
         int port = 7100;
         if (args != null && args.length > 0) {
@@ -22,7 +25,7 @@ public class FixedLengthFrameDecoderServer {
                 // 采用默认值
             }
         }
-        new FixedLengthFrameDecoderServer().bind(port);
+        new LineBasedFrameDecoderTimeServer().bind(port);
     }
 
     private void bind(int port) throws Exception {
@@ -34,7 +37,7 @@ public class FixedLengthFrameDecoderServer {
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .option(ChannelOption.SO_BACKLOG, 1024)
-                    .childHandler(new FixedLengthFrameDecoderServer.ChildChannelHandler());
+                    .childHandler(new LineBasedFrameDecoderTimeServer.ChildChannelHandler());
             // 绑定端口，同步等待成功
             ChannelFuture f = b.bind(port).sync();
             System.out.println("the time server is start in port: " + port);
@@ -51,9 +54,9 @@ public class FixedLengthFrameDecoderServer {
 
         @Override
         protected void initChannel(SocketChannel socketChannel) throws Exception {
-            socketChannel.pipeline().addLast(new FixedLengthFrameDecoder(5));
+            socketChannel.pipeline().addLast(new LineBasedFrameDecoder(1024));
             socketChannel.pipeline().addLast(new StringDecoder());
-            socketChannel.pipeline().addLast(new FixedLengthFrameDecoderServer.TimeServerHandler());
+            socketChannel.pipeline().addLast(new LineBasedFrameDecoderTimeServer.TimeServerHandler());
         }
     }
 
@@ -64,13 +67,17 @@ public class FixedLengthFrameDecoderServer {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             String body = (String) msg;
-            System.out.println("this is: " + body + " ; the counter is: " + ++counter);
+            System.out.println("the time server receive order: " + body + " ; the counter is: " + ++counter);
+            String currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ? new java.util.Date(System.currentTimeMillis()).toString() : "BAD ORDER";
+            currentTime = currentTime + System.getProperty("line.separator");
+            ByteBuf resp = Unpooled.copiedBuffer(currentTime.getBytes());
+            ctx.write(resp);
         }
 
         @Override
         public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
             ctx.flush();
-//            ctx.close();
+            ctx.close();
         }
 
         @Override

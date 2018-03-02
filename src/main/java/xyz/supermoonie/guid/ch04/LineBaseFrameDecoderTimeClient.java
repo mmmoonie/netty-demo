@@ -1,4 +1,4 @@
-package xyz.supermoonie.ch04;
+package xyz.supermoonie.guid.ch04;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -7,13 +7,14 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LineBasedFrameDecoder;
+import io.netty.handler.codec.string.StringDecoder;
 
 /**
  *
- * Created by Administrator on 2018/2/27 0027.
+ * Created by Administrator on 2018/2/28 0028.
  */
-public class TimeClient {
-
+public class LineBaseFrameDecoderTimeClient {
     public static void main(String[] args) throws Exception {
         int port = 7100;
         if (args != null && args.length > 0) {
@@ -23,7 +24,7 @@ public class TimeClient {
                 // 采用默认值
             }
         }
-        new TimeClient().connect("127.0.0.1", port);
+        new LineBaseFrameDecoderTimeClient().connect("127.0.0.1", port);
     }
 
     private void connect(String host, int port) throws Exception {
@@ -37,7 +38,9 @@ public class TimeClient {
 
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            socketChannel.pipeline().addLast(new TimeClientHandler());
+                            socketChannel.pipeline().addLast(new LineBasedFrameDecoder(1024));
+                            socketChannel.pipeline().addLast(new StringDecoder());
+                            socketChannel.pipeline().addLast(new LineBaseFrameDecoderTimeClient.TimeClientHandler());
                         }
                     });
             ChannelFuture f = b.connect(host, port).sync();
@@ -69,10 +72,7 @@ public class TimeClient {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            ByteBuf buf = (ByteBuf) msg;
-            byte[] resp = new byte[buf.readableBytes()];
-            buf.readBytes(resp);
-            String body = new String(resp, "UTF-8");
+            String body = (String) msg;
             System.out.println("now is: " + body + " ; the counter is: " + ++counter);
         }
 

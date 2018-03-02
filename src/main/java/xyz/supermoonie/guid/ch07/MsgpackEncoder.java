@@ -1,4 +1,4 @@
-package xyz.supermoonie.ch07;
+package xyz.supermoonie.guid.ch07;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;

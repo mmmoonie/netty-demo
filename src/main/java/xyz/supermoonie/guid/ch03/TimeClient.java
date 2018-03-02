@@ -1,4 +1,4 @@
-package xyz.supermoonie.ch03;
+package xyz.supermoonie.guid.ch03;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;

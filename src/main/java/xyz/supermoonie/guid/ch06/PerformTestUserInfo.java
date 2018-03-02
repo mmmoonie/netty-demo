@@ -1,4 +1,4 @@
-package xyz.supermoonie.ch06;
+package xyz.supermoonie.guid.ch06;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

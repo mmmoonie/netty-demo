@@ -1,4 +1,4 @@
-package xyz.supermoonie.ch04;
+package xyz.supermoonie.guid.ch03;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -7,14 +7,12 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.LineBasedFrameDecoder;
-import io.netty.handler.codec.string.StringDecoder;
 
 /**
  *
- * Created by Administrator on 2018/2/28 0028.
+ * Created by Administrator on 2018/2/26 0026.
  */
-public class LineBasedFrameDecoderTimeServer {
+public class TimeServer {
 
     public static void main(String[] args) throws Exception {
         int port = 7100;
@@ -25,7 +23,7 @@ public class LineBasedFrameDecoderTimeServer {
                 // 采用默认值
             }
         }
-        new LineBasedFrameDecoderTimeServer().bind(port);
+        new TimeServer().bind(port);
     }
 
     private void bind(int port) throws Exception {
@@ -37,7 +35,7 @@ public class LineBasedFrameDecoderTimeServer {
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .option(ChannelOption.SO_BACKLOG, 1024)
-                    .childHandler(new LineBasedFrameDecoderTimeServer.ChildChannelHandler());
+                    .childHandler(new ChildChannelHandler());
             // 绑定端口，同步等待成功
             ChannelFuture f = b.bind(port).sync();
             System.out.println("the time server is start in port: " + port);
@@ -54,22 +52,20 @@ public class LineBasedFrameDecoderTimeServer {
 
         @Override
         protected void initChannel(SocketChannel socketChannel) throws Exception {
-            socketChannel.pipeline().addLast(new LineBasedFrameDecoder(1024));
-            socketChannel.pipeline().addLast(new StringDecoder());
-            socketChannel.pipeline().addLast(new LineBasedFrameDecoderTimeServer.TimeServerHandler());
+            socketChannel.pipeline().addLast(new TimeServerHandler());
         }
     }
 
     private class TimeServerHandler extends ChannelHandlerAdapter {
 
-        private int counter = 0;
-
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            String body = (String) msg;
-            System.out.println("the time server receive order: " + body + " ; the counter is: " + ++counter);
+            ByteBuf buf = (ByteBuf) msg;
+            byte[] req = new byte[buf.readableBytes()];
+            buf.readBytes(req);
+            String body = new String(req, "UTF-8");
+            System.out.println("the time server receive order: " + body);
             String currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ? new java.util.Date(System.currentTimeMillis()).toString() : "BAD ORDER";
-            currentTime = currentTime + System.getProperty("line.separator");
             ByteBuf resp = Unpooled.copiedBuffer(currentTime.getBytes());
             ctx.write(resp);
         }

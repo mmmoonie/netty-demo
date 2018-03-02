@@ -1,4 +1,4 @@
-package xyz.supermoonie.ch02;
+package xyz.supermoonie.guid.ch02;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
