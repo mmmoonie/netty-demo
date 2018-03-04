@@ -1,10 +1,13 @@
 package xyz.supermoonie.guid.ch07;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
 
 /**
  *
@@ -40,8 +43,10 @@ public class EchoServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
-                            ch.pipeline().addLast("msgpack decoder", new MsgpackDecoder());
-                            ch.pipeline().addLast("msgpack encoder", new MsgpackEncoder());
+                            ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2));
+                            ch.pipeline().addLast(new MsgpackDecoder());
+                            ch.pipeline().addLast(new LengthFieldPrepender(2));
+                            ch.pipeline().addLast(new MsgpackEncoder());
                             ch.pipeline().addLast(new EchoServerHandler());
                         }
                     })
@@ -60,15 +65,18 @@ public class EchoServer {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            System.out.println(msg.toString());
-            ctx.writeAndFlush(msg);
+            System.out.println("server received: " + msg.toString());
+            ctx.write(msg);
+        }
+
+        @Override
+        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+            ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            if (cause != null) {
-                cause.printStackTrace();
-            }
+            cause.printStackTrace();
             ctx.close();
         }
     }

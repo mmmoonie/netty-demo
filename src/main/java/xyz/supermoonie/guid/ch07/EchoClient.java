@@ -1,10 +1,14 @@
 package xyz.supermoonie.guid.ch07;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.util.CharsetUtil;
 import xyz.supermoonie.guid.ch06.UserInfo;
 
 /**
@@ -35,8 +39,10 @@ public class EchoClient {
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            socketChannel.pipeline().addLast("msgpack decoder", new MsgpackDecoder());
-                            socketChannel.pipeline().addLast("msgpack encoder", new MsgpackEncoder());
+                            socketChannel.pipeline().addLast(new LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2));
+                            socketChannel.pipeline().addLast(new MsgpackDecoder());
+                            socketChannel.pipeline().addLast(new LengthFieldPrepender(2));
+                            socketChannel.pipeline().addLast(new MsgpackEncoder());
                             socketChannel.pipeline().addLast(new EchoClientHandler(sendNumber));
                         }
                     });
@@ -57,7 +63,6 @@ public class EchoClient {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            System.out.println("channelActive");
             UserInfo[] userInfos = userInfos();
             for (UserInfo info : userInfos) {
                 ctx.write(info);
@@ -67,8 +72,7 @@ public class EchoClient {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-            System.out.println("client receive msgpack message: " + msg);
-            ctx.write(msg);
+            System.out.println("Client received: " + msg);
         }
 
         @Override
@@ -78,9 +82,7 @@ public class EchoClient {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            if (cause != null) {
-                cause.printStackTrace();
-            }
+            cause.printStackTrace();
             ctx.close();
         }
 
@@ -106,6 +108,6 @@ public class EchoClient {
                 // 采用默认值
             }
         }
-        new EchoClient("127.0.0.1", port, 1).run();
+        new EchoClient("127.0.0.1", port, 1000).run();
     }
 }

@@ -1,5 +1,7 @@
 package xyz.supermoonie.guid.ch06;
 
+import org.msgpack.annotation.Message;
+
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
@@ -7,6 +9,7 @@ import java.nio.ByteBuffer;
  * @author moonie
  * @date 2018/2/28
  */
+@Message
 public class UserInfo implements Serializable {
 
     private static final long serialVersionUID = 1L;
