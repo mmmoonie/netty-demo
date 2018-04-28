@@ -73,6 +73,7 @@ public class EchoClient {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             System.out.println("Client received: " + msg);
+            ctx.write(msg);
         }
 
         @Override

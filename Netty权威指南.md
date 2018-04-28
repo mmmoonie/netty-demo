@@ -53,11 +53,11 @@ select 最大的缺陷就是单个进程打开的 FD 是有一定限制的，它
 
 #### 2.1.1 同步阻塞式 I/O 创建的 TimeServer 源码分析
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/TimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/TimeServer.java)
+[TimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch02/TimeServer.java)
 
 #### 2.1.2 同步阻塞式 I/O 创建的 TimeClient 源码分析
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/TimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/TimeClient.java)
+[TimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch02/TimeClient.java)
 
 ### 2.2 伪异步 I/O 编程
 
@@ -65,7 +65,7 @@ select 最大的缺陷就是单个进程打开的 FD 是有一定限制的，它
 
 #### 2.2.1 伪异步I/O 创建的 TimeServer 源码分析
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/ExecutePoolTimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/ExecutePoolTimeServer.java)
+[ExecutePoolTimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch02/ExecutePoolTimeServer.java)
 
 #### 2.2.2 伪异步I/O 的弊端
 
@@ -123,7 +123,7 @@ ioHandler->Reactor Thread:11.异步写ByteBuffer到SocketChannel
 
 #### 2.3.3 NIO创建的TimeServer源码分析
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/MultiplexerTimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/MultiplexerTimeServer.java)
+[MultiplexerTimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch02/MultiplexerTimeServer.java)
 
 #### 2.3.4 NIO客户端序列图
 
@@ -158,7 +158,7 @@ NIO 服务端开发步骤：
 9. 如果轮询的 Channel 为 OP_READ，则说明 SocketChannel 中有新的就绪的数据包需要读取，则构造 ByteBuffer 对象，读取数据包
 10. 如果轮询的 Channel 为 OP_WRITE，说明还有数据没有发送完成，需要继续发送
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/MultiplexerTimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/MultiplexerTimeClient.java)
+[MultiplexerTimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch02/MultiplexerTimeClient.java)
 
 使用NIO编程的优点：
 
@@ -173,11 +173,11 @@ NIO 2.0的异步套接字通道死真正的异步非阻塞I/O，对应于UNIX网
 
 #### 2.4.1 AIO 创建的 TimeServer 源码
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/AsyncTimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/AsyncTimeServer.java)
+[AsyncTimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch02/AsyncTimeServer.java)
 
 #### 2.4.2 AIO 创建的 TimeClient 源码
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/AsyncTimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch02/AsyncTimeClient.java)
+[AsyncTimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch02/AsyncTimeClient.java)
 
 ### 2.5 4种 I/O 的对比
 
@@ -217,11 +217,11 @@ NIO 2.0的异步套接字通道死真正的异步非阻塞I/O，对应于UNIX网
 
 ### 3.1 Netty 服务端开发
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch03/TimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch03/TimeServer.java)
+[TimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch03/TimeServer.java)
 
 ### 3.2 Netty 客户端开发
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch03/TimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch03/TimeClient.java)
+[TimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch03/TimeClient.java)
 
 ## 第四章 TCP 粘包/拆包问题的解决之道
 
@@ -256,21 +256,21 @@ NIO 2.0的异步套接字通道死真正的异步非阻塞I/O，对应于UNIX网
 
 #### 4.2.1 TimeServer
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/TimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/TimeServer.java)
+[TimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch04/TimeServer.java)
 
 #### 4.2.2 TimeClient
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/TimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/TimeClient.java)
+[TimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch04/TimeClient.java)
 
 ### 4.3 利用 LineBasedFrameDecoder 解决 TCP 粘包问题
 
 #### 4.3.1 支持 TCP 粘包的 LineBasedFrameDecoderTimeServer
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/LineBasedFrameDecoderTimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/LineBasedFrameDecoderTimeServer.java)
+[LineBasedFrameDecoderTimeServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch04/LineBasedFrameDecoderTimeServer.java)
 
 #### 4.3.2 支持 TCP 粘包的 LineBaseFrameDecoderTimeClient
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/LineBaseFrameDecoderTimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch04/LineBaseFrameDecoderTimeClient.java)
+[LineBaseFrameDecoderTimeClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch04/LineBaseFrameDecoderTimeClient.java)
 
 #### 4.3.3 LineBasedFrameDecoder 与 StringDecoder 的原理分析 
 
@@ -284,15 +284,15 @@ StringDecoder 的功能就是将接收到的对象转换成字符串，然后继
 
 DelimiterBasedFrameDecoder 可以自动完成以分隔符作为流码结束标识的消息的解码
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/DelimiterBasedFrameDecoderServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/DelimiterBasedFrameDecoderServer.java)
+[DelimiterBasedFrameDecoderServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch05/DelimiterBasedFrameDecoderServer.java)
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/DelimiterBasedFrameDecoderClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/DelimiterBasedFrameDecoderClient.java)
+[DelimiterBasedFrameDecoderClient.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch05/DelimiterBasedFrameDecoderClient.java)
 
 #### 5.2 FixedLengthFrameDecoder 开发
 
 FixedLengthFrameDecoder 是固定长度解码器，它能够按照指定的长度对消息进行自动解码
 
-[https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/FixedLengthFrameDecoderServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch05/FixedLengthFrameDecoderServer.java)
+[FixedLengthFrameDecoderServer.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch05/FixedLengthFrameDecoderServer.java)
 
 ### 第六章 编解码技术
 
@@ -304,9 +304,9 @@ FixedLengthFrameDecoder 是固定长度解码器，它能够按照指定的长�
 
    基于 ByteBuffer 的通用二进制编码技术与传统的 JDK 序列化后的码流大小对比
 
-   [https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/UserInfo.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/UserInfo.java)
+   [UserInfo.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch06/UserInfo.java)
 
-   [https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/TestUserInfo.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/TestUserInfo.java)
+   [TestUserInfo.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch06/TestUserInfo.java)
 
    影响编解码优劣的因素：
 
@@ -318,7 +318,7 @@ FixedLengthFrameDecoder 是固定长度解码器，它能够按照指定的长�
 
 3. 序列化性能太低
 
-   [https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/PerformTestUserInfo.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/ch06/PerformTestUserInfo.java)
+   [PerformTestUserInfo.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch06/PerformTestUserInfo.java)
 
 
 ### 6.2 业界主流的编解码框架
