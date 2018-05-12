@@ -10,7 +10,9 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 
 /**
  *
- * Created by Administrator on 2018/2/27 0027.
+ *
+ * @author Administrator
+ * @date 2018/2/27 0027
  */
 public class TimeClient {
 
@@ -53,14 +55,16 @@ public class TimeClient {
 
         private byte[] req;
 
+        private final int max = 100;
+
         public TimeClientHandler() {
             req = ("QUERY TIME ORDER" + System.getProperty("line.separator")).getBytes();
         }
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            ByteBuf message = null;
-            for (int i = 0; i < 100; i ++) {
+            ByteBuf message;
+            for (int i = 0; i < max; i ++) {
                 message = Unpooled.buffer(req.length);
                 message.writeBytes(req);
                 ctx.writeAndFlush(message);
@@ -74,6 +78,9 @@ public class TimeClient {
             buf.readBytes(resp);
             String body = new String(resp, "UTF-8");
             System.out.println("now is: " + body + " ; the counter is: " + ++counter);
+            if (counter >= max -1) {
+                ctx.disconnect();
+            }
         }
 
         @Override

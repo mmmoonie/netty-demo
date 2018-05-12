@@ -11,7 +11,9 @@ import io.netty.handler.codec.LengthFieldPrepender;
 
 /**
  *
- * Created by Administrator on 2018/3/1 0001.
+ *
+ * @author Administrator
+ * @date 2018/3/1 0001
  */
 public class EchoServer {
 
@@ -66,12 +68,7 @@ public class EchoServer {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             System.out.println("server received: " + msg.toString());
-            ctx.write(msg);
-        }
-
-        @Override
-        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-            ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(msg);
         }
 
         @Override

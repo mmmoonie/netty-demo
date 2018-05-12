@@ -1,19 +1,19 @@
 package xyz.supermoonie.guid.ch07;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.util.CharsetUtil;
 import xyz.supermoonie.guid.ch06.UserInfo;
 
 /**
  *
- * Created by Administrator on 2018/2/28 0028.
+ *
+ * @author Administrator
+ * @date 2018/2/28 0028
  */
 public class EchoClient {
 
@@ -57,6 +57,8 @@ public class EchoClient {
 
         private final int sendNumber;
 
+        private int counter = 0;
+
         public EchoClientHandler(int sendNumber) {
             this.sendNumber = sendNumber;
         }
@@ -65,20 +67,19 @@ public class EchoClient {
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             UserInfo[] userInfos = userInfos();
             for (UserInfo info : userInfos) {
-                ctx.write(info);
+                ctx.writeAndFlush(info);
             }
-            ctx.flush();
         }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             System.out.println("Client received: " + msg);
-            ctx.write(msg);
-        }
+            ++ counter;
+            if (counter >= sendNumber -1) {
+                ctx.disconnect();
+                ctx.close();
+            }
 
-        @Override
-        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-            ctx.flush();
         }
 
         @Override
@@ -89,7 +90,7 @@ public class EchoClient {
 
         private UserInfo[] userInfos() {
             UserInfo[] infos = new UserInfo[sendNumber];
-            UserInfo info = null;
+            UserInfo info;
             for (int i = 0; i < sendNumber; i ++) {
                 info = new UserInfo();
                 info.setUserId(i);

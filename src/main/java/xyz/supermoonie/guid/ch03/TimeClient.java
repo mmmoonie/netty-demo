@@ -10,7 +10,9 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 
 /**
  *
- * Created by Administrator on 2018/2/27 0027.
+ *
+ * @author Administrator
+ * @date 2018/2/27 0027
  */
 public class TimeClient {
 

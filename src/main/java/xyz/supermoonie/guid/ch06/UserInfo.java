@@ -57,4 +57,12 @@ public class UserInfo implements Serializable {
         buffer.get(result);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "UserInfo{" +
+                "userName='" + userName + '\'' +
+                ", userId=" + userId +
+                '}';
+    }
 }

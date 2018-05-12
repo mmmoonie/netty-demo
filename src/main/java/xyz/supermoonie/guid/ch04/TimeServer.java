@@ -10,7 +10,9 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 /**
  *
- * Created by Administrator on 2018/2/26 0026.
+ *
+ * @author Administrator
+ * @date 2018/2/26 0026
  */
 public class TimeServer {
 
@@ -70,13 +72,13 @@ public class TimeServer {
             String currentTime = "QUERY TIME ORDER".equalsIgnoreCase(body) ? new java.util.Date(System.currentTimeMillis()).toString() : "BAD ORDER";
             currentTime = currentTime + System.getProperty("line.separator");
             ByteBuf resp = Unpooled.copiedBuffer(currentTime.getBytes());
-            ctx.write(resp);
+            ctx.writeAndFlush(resp);
         }
 
         @Override
-        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-            ctx.flush();
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
             ctx.close();
+            super.channelInactive(ctx);
         }
 
         @Override

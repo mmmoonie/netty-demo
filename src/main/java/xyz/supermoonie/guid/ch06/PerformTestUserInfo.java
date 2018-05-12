@@ -7,7 +7,9 @@ import java.nio.ByteBuffer;
 
 /**
  *
- * Created by Administrator on 2018/2/28 0028.
+ *
+ * @author Administrator
+ * @date 2018/2/28 0028
  */
 public class PerformTestUserInfo {
 

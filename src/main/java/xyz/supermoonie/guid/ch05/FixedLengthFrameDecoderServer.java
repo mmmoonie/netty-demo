@@ -10,7 +10,9 @@ import io.netty.handler.codec.string.StringDecoder;
 
 /**
  *
- * Created by Administrator on 2018/2/28 0028.
+ *
+ * @author Administrator
+ * @date 2018/2/28 0028
  */
 public class FixedLengthFrameDecoderServer {
     public static void main(String[] args) throws Exception {

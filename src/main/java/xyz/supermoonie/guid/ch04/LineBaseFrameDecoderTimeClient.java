@@ -12,7 +12,9 @@ import io.netty.handler.codec.string.StringDecoder;
 
 /**
  *
- * Created by Administrator on 2018/2/28 0028.
+ *
+ * @author Administrator
+ * @date 2018/2/28 0028
  */
 public class LineBaseFrameDecoderTimeClient {
     public static void main(String[] args) throws Exception {
@@ -56,14 +58,16 @@ public class LineBaseFrameDecoderTimeClient {
 
         private byte[] req;
 
+        private final int max = 100;
+
         public TimeClientHandler() {
             req = ("QUERY TIME ORDER" + System.getProperty("line.separator")).getBytes();
         }
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            ByteBuf message = null;
-            for (int i = 0; i < 100; i ++) {
+            ByteBuf message;
+            for (int i = 0; i < max; i ++) {
                 message = Unpooled.buffer(req.length);
                 message.writeBytes(req);
                 ctx.writeAndFlush(message);
@@ -74,6 +78,9 @@ public class LineBaseFrameDecoderTimeClient {
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             String body = (String) msg;
             System.out.println("now is: " + body + " ; the counter is: " + ++counter);
+            if (counter >= max -1) {
+                ctx.disconnect();
+            }
         }
 
         @Override
