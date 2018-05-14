@@ -229,7 +229,7 @@ NIO 2.0的异步套接字通道死真正的异步非阻塞I/O，对应于UNIX网
 
 #### 4.1.1 TCP 粘包/拆包问题说明
 
-![4-1.PNG](https://github.com/mmmoonie/netty-demo/blob/master/image/4-1.PNG?raw=true)
+![4-1](assets/4-1.PNG)
 
 假设客户端发送了两个数据包 D1 和 D2 给服务端，由于服务端一次读取的字节数是不确定的，所以有以下几种情况：
 
@@ -355,6 +355,54 @@ MessagePack 是一个高效的二进制序列化框架，它像 JSON 一样支�
 ### 7.1 MessagePack 编码器和解码器开发
 
 #### 7.1.1 MessagePack 编码器开发
+
+[MsgpackEncoder.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch07/MsgpackEncoder.java)
+
+#### 7.1.2 MessagePack 解码器开发
+
+[MsgpackDecoder.java](https://github.com/mmmoonie/netty-demo/blob/master/src/main/java/xyz/supermoonie/guid/ch07/MsgpackDecoder.java)
+
+### 7.2 粘包/半包支持
+
+```java
+ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2));
+ch.pipeline().addLast(new MsgpackDecoder());
+ch.pipeline().addLast(new LengthFieldPrepender(2));
+ch.pipeline().addLast(new MsgpackEncoder());
+```
+
+new LengthFieldPrepender(2) 将在 ByteBuf 之前增加 2 个字节的消息长度字段，其原理如图所示：
+
+![7-2](assets/7-2.PNG)
+
+LengthFieldBasedFrameDecoder 构造参数说明：
+
+```java
+public LengthFieldBasedFrameDecoder(
+    ByteOrder byteOrder, 
+    int maxFrameLength, 
+    int lengthFieldOffset, 
+    int lengthFieldLength,
+    int lengthAdjustment, 
+    int initialBytesToStrip, 
+    boolean failFast) {
+    
+}
+```
+
+- byteOrder：表示字节流是大端还是小端
+- maxFrameLength：数据包的最大字节数，超出长度会抛出 TooLongFrameException 异常
+- lengthFieldOffset：获取长度字段的偏移量，即跳过多少字节才能到达获取长度域的位置
+- lengthFieldLength：长度域占用的字节数
+- lengthAdjustment：长度补偿值，即 lengthFieldOffset + lengthFieldLength + lengthAdjustment = header
+- initialBytesToStrip：获取完一个完整的数据包之后，忽略前面的指定的位数个字节 ，即忽略掉 lengthFieldOffset + lengthFieldLength + lengthAdjustment
+- failFast：如果为true，则表示读取到长度域，TA的值的超过maxFrameLength，就抛出一个 TooLongFrameException，而为false表示只有当真正读取完长度域的值表示的字节之后，才会抛出 TooLongFrameException，默认情况下设置为true，建议不要修改，否则可能会造成内存溢出
+
+## 第八章 Google Protobuf 编解码
+
+## 第九章 JBoss Marshaling 编解码
+
+## 第十章 HTTP 协议开发应用
 
 
 
