@@ -38,6 +38,12 @@
             <artifactId>netty-all</artifactId>
             <version>5.0.0.Alpha1</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/io.netty/netty-example -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-example</artifactId>
+            <version>5.0.0.Alpha1</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.msgpack/msgpack -->
         <dependency>
             <groupId>org.msgpack</groupId>
