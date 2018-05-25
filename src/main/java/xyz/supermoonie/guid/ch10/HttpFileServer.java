@@ -67,8 +67,8 @@ public class HttpFileServer {
                             ch.pipeline().addLast("httpFileServerHandler", new HttpFileServerHandler(false));
                         }
                     });
-            ChannelFuture f = bootstrap.bind("localhost", port).sync();
-            System.out.println("HTTP 文件服务器启动, 地址是： " + "http://localhost:" + port);
+            ChannelFuture f = bootstrap.bind(port).sync();
+            System.out.println("HTTP 文件服务器启动, 端口：" + port);
             f.channel().closeFuture().sync();
         } finally {
             bossGroup.shutdownGracefully();
