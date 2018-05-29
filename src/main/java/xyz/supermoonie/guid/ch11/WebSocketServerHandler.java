@@ -6,11 +6,16 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.example.http.websocketx.server.WebSocketServerIndexPage;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.util.CharsetUtil;
 
-import java.util.Date;
+import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
+import static io.netty.handler.codec.http.HttpHeaders.setContentLength;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
  * @author Administrator
@@ -18,7 +23,7 @@ import java.util.Date;
  */
 public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> {
 
-    private WebSocketServerHandshaker handshaker;
+    private WebSocketServerHandshaker handShaker;
 
     @Override
     protected void messageReceived(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -37,22 +42,40 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
     }
 
     private void handleHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
-        if (!req.getDecoderResult().isSuccess() || !"websocket".equals(req.headers().get("Upgrade"))) {
-            sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST));
+
+        if ("/".equals(req.getUri())) {
+            ByteBuf content = WebSocketServerIndexPage.getContent("ws://localhost:7100/websocket");
+            FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, OK, content);
+
+            res.headers().set(CONTENT_TYPE, "text/html; charset=UTF-8");
+            setContentLength(res, content.readableBytes());
+
+            sendHttpResponse(ctx, req, res);
             return;
         }
+        if ("/favicon.ico".equals(req.getUri())) {
+            FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, NOT_FOUND);
+            sendHttpResponse(ctx, req, res);
+            return;
+        }
+
         WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory("ws://localhost:7100/websocket", null, false);
-        handshaker = wsFactory.newHandshaker(req);
-        if (handshaker == null) {
+        handShaker = wsFactory.newHandshaker(req);
+        if (handShaker == null) {
             WebSocketServerHandshakerFactory.sendUnsupportedWebSocketVersionResponse(ctx.channel());
         } else {
-            handshaker.handshake(ctx.channel(), req);
+            handShaker.handshake(ctx.channel(), req);
         }
+    }
+
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        ctx.flush();
     }
 
     private void handleWebSocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame) {
         if (frame instanceof CloseWebSocketFrame) {
-            handshaker.close(ctx.channel(), (CloseWebSocketFrame) frame.retain());
+            handShaker.close(ctx.channel(), (CloseWebSocketFrame) frame.retain());
             return;
         }
         if (frame instanceof PingWebSocketFrame) {
@@ -65,11 +88,12 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
 
         String request = ((TextWebSocketFrame) frame).text();
         System.out.println(String.format("%s received %s", ctx.channel(), request));
-        ctx.channel().write(new TextWebSocketFrame(request + " 欢迎使用 netty web socket 现在时刻：" + new Date().toString()));
+        ctx.channel().write(new TextWebSocketFrame(request.toUpperCase()));
     }
 
     private static void sendHttpResponse(ChannelHandlerContext ctx, FullHttpRequest req, FullHttpResponse res) {
-        if (res.getStatus().code() != 200) {
+        if (res.getStatus().code() != HttpResponseStatus.OK.code()) {
+
             ByteBuf buf = Unpooled.copiedBuffer(res.getStatus().toString(), CharsetUtil.UTF_8);
             res.content().writeBytes(buf);
             buf.release();
@@ -77,7 +101,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
         }
 
         ChannelFuture f = ctx.channel().writeAndFlush(res);
-        if (!HttpHeaders.isKeepAlive(req) || res.getStatus().code() != 200) {
+        if (!HttpHeaders.isKeepAlive(req) || res.getStatus().code() != HttpResponseStatus.OK.code()) {
             f.addListener(ChannelFutureListener.CLOSE);
         }
     }
