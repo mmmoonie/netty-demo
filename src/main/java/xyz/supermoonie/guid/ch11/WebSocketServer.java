@@ -45,7 +45,7 @@ public class WebSocketServer {
                             ChannelPipeline pipeline = ch.pipeline();
                             pipeline.addLast("http-codec", new HttpServerCodec());
                             pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
-                            pipeline.addLast("http-chunked", new ChunkedWriteHandler());
+                            pipeline.addLast("http-chunk", new ChunkedWriteHandler());
                             pipeline.addLast("handler", new WebSocketServerHandler());
                         }
                     });
