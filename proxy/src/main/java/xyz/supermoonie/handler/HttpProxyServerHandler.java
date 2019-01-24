@@ -6,7 +6,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.*;
-import io.netty.resolver.NoopAddressResolverGroup;
 import io.netty.util.ReferenceCountUtil;
 import xyz.supermoonie.interceptor.Interceptor;
 import xyz.supermoonie.server.HttpProxyServerConfig;
@@ -99,8 +98,8 @@ public class HttpProxyServerHandler extends ChannelInboundHandlerAdapter {
             }
             InetUrlUtil.InetUrl requestProto = new InetUrlUtil.InetUrl(host, port, isSsl);
             ChannelInitializer channelInitializer =
-                    isHttp ? new HttpProxyInitializer(channel, requestProto, proxyHandler)
-                            : new TunnelProxyInitializer(channel, proxyHandler);
+                    isHttp ? new HttpProxyInitializer(channel, requestProto)
+                            : new TunnelProxyInitializer(channel);
             Bootstrap bootstrap = new Bootstrap();
             // 注册线程池
             bootstrap.group(serverConfig.getProxyLoopGroup())
@@ -133,5 +132,9 @@ public class HttpProxyServerHandler extends ChannelInboundHandlerAdapter {
                 }
             }
         }
+    }
+
+    public HttpProxyServerConfig getServerConfig() {
+        return serverConfig;
     }
 }
