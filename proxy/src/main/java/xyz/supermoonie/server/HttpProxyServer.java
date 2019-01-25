@@ -1,10 +1,7 @@
 package xyz.supermoonie.server;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpServerCodec;
@@ -23,8 +20,8 @@ public class HttpProxyServer {
 
     private Interceptor interceptor;
 
-    private EventLoopGroup bossGroup;
-    private EventLoopGroup workerGroup;
+    private EventLoopGroup acceptorGroup;
+    private EventLoopGroup ioGroup;
 
     private void init() {
         if (null == serverConfig) {
@@ -37,12 +34,13 @@ public class HttpProxyServer {
 
     public void start(int port) throws InterruptedException {
         init();
-        bossGroup = new NioEventLoopGroup();
-        workerGroup = new NioEventLoopGroup();
+        acceptorGroup = new NioEventLoopGroup();
+        ioGroup = new NioEventLoopGroup();
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
-            bootstrap.group(bossGroup, workerGroup)
+            bootstrap.group(acceptorGroup, ioGroup)
                     .channel(NioServerSocketChannel.class)
+                    .option(ChannelOption.SO_BACKLOG, 100)
                     .handler(new LoggingHandler(LogLevel.DEBUG))
                     .childHandler(new ChannelInitializer<Channel>() {
                         @Override
@@ -54,8 +52,8 @@ public class HttpProxyServer {
             ChannelFuture future = bootstrap.bind(port).sync();
             future.channel().closeFuture().sync();
         } finally {
-            workerGroup.shutdownGracefully();
-            bossGroup.shutdownGracefully();
+            ioGroup.shutdownGracefully();
+            acceptorGroup.shutdownGracefully();
         }
     }
 
@@ -79,7 +77,7 @@ public class HttpProxyServer {
 
     public void close() {
         serverConfig.getProxyLoopGroup().shutdownGracefully();
-        workerGroup.shutdownGracefully();
-        bossGroup.shutdownGracefully();
+        ioGroup.shutdownGracefully();
+        acceptorGroup.shutdownGracefully();
     }
 }

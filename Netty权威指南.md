@@ -404,10 +404,106 @@ public LengthFieldBasedFrameDecoder(
 
 ## 第十章 HTTP 协议开发应用
 
+## 第十三章 服务端创建
 
+### 13.1 Netty 服务端创建时序图
 
+![./assets/13-1.png](./assets/13-1.png)
 
+**Netty 服务器端创建的关键步骤：**
 
+1. 创建 ServerBootstrap 实例。ServerBootstrap 是Netty 服务端的启动辅助类，提供了一系列方法用于设置服务端启动相关的参数。底层通过门面模式对各种能力进行抽象和封装。
+2. 设置并绑定Reactor 线程池。Netty 的 Reactor 线程池是 EventLoopGroup，实际上就是 EventLoop 的数组。EventLoop 的职责是处理所有注册到本线程多路复用器 Selector 上的 Channel，Selector 的轮询操作由绑定的 EventLoop 线程 run 方法驱动，在一个循环体内循环执行。
+3. 设置并绑定服务端 Channel。ServerBootstrap 提供了 channel 方法用于指定服务端 Channel 的类型。Netty 通过工厂类，利用反射创建 NioServerSocketChannel 对象。
+4. 链路建立时创建并初始化 ChannelPipeline。ChannelPipeline 并不是 NIO 服务端必须的，它本质是一个负责处理网络事件的责任链，负责管理和执行 ChannelHandler。网络事件以事件流的形式在 ChannelPipeline 中流转，由 ChannelPipeline 根据 ChannelHandler 的执行策略调度 ChannelHandler 的执行。
+5. 初始化 ChannelPipoline 完成后，添加并设置 ChannelHandler。ChannelHandler 可以完成大多数的功能定制，例如消息编解码、心跳、安全认证、TSL/SSL 认证、流量控制和流量整形等。
+6. 绑定并启动监听端口。在绑定监听端口之前会做一系列的初始化和检测工作，完成之后，启动监听端口，并将 ServerSocketChannel 注册到 Selector 上监听客户端连接。
+7. Selector 轮询。由Reactor 线程 NioEventLoop 负责调度和执行 Selector 轮询操作，选择准备就绪的 Channel 集合。
+8. 当轮询到准备就绪的 Channel 之后，就由 Reactor 线程 NioEventLoop 执行 ChannelPipeline 的相应方法，最终调度并执行 ChannelHandler。
+9. 执行 Netty 系统 ChannelHandler 和用户添加的 ChannelHandler。
 
+比较使用的系统 ChannelHandler：
 
+- ByteToMessageCodec：系统编解码框架
+- LengthFieldBasedFrameDecoder：基于长度的半包解码器
+- LoggingHandler：流码日志打印Handler
+- SslHandler：SSL 安全认证Handler
+- IdleStateHandler：链路空闲检测Handler
+- ChannelTrafficShapingHander：流量整形Handler
+- Base64Decoder 和 Base64Decoder：Base64 编解码
 
+### 13.2 Netty 服务端创建源码分析
+
+首先创建 ServerBootstrap 实例：
+
+```java
+ServerBootstrap bootstrap = new NioEventLoopGroup();
+EventLoopGroup acceptorGroup = new NioEventLoopGroup();
+EventLoopGroup ioGroup = new NioEventLoopGroup();
+bootstrap.group(acceptorGroup, ioGroup)
+    .channel(NioServerSocketChannel.class)
+    .option(ChannelOption.SO_BACKLOG, 100);
+```
+
+随后创建 EventLoopGroup，EventLoopGroup 并不是必须要创建两个不同的 EventLoopGroup，也可以只创建一个并共享。NioEventLoopGroup 实际就是 Reactor 线程池，负责调度和执行客户端的接入、网络读写事件的处理、用户自定义任务和定时任务的执行。通过 ServerBootstrap 的 group 方法将两个 EventLoopGroup 实例传入：
+
+```java
+public ServerBootstrap group(EventLoopGroup parentGroup, EventLoopGroup childGroup) {
+    super.group(parentGroup);
+    if (childGroup == null) {
+        throw new NullPointerException("childGroup");
+    }
+    if (this.childGroup != null) {
+        throw new IllegalStateException("childGroup set already");
+    }
+    this.childGroup = childGroup;
+    return this;
+}
+```
+
+其中 ioGroup 被传入父类构造方法中：
+
+```java
+public B group(EventLoopGroup group) {
+    if (group == null) {
+        throw new NullPointerException("group");
+    }
+    if (this.group != null) {
+        throw new IllegalStateException("group set already");
+    }
+    this.group = group;
+    return self();
+}
+```
+
+该方法用于设置工作 I/O 线程，执行和调度网络事件的读写。
+
+线程组和线程类型设置完成后，需要设置服务端 Channel 用于端口监听和客户端链路接入。Netty 通过 Channel 工厂类来创建不同类型的 Channel。所以，通过指定 Channel 类型的方式创建 Channel 工厂。
+
+```java
+public B channel(Class<? extends C> channelClass) {
+    if (channelClass == null) {
+        throw new NullPointerException("channelClass");
+    }
+    return channelFactory(new ReflectiveChannelFactory<C>(channelClass));
+}
+```
+
+ReflectiveChannelFactory.java：
+
+```java
+@Override
+public T newChannel() {
+    try {
+        return clazz.getConstructor().newInstance();
+    } catch (Throwable t) {
+        throw new ChannelException("Unable to create Channel from class " + clazz, t);
+    }
+}
+```
+
+ReflectiveChannelFactory 根据 Channel 的类型通过反射创建 Channel 的实例。
+
+指定 NioServerSocketChannel 后，需要设置 TCP 的一些参数，作为服务端，主要设置 TCP 的 backlog 参数，backlog 制定了内核为此套接口排队的最大连接个数，对于给定的监听套接口，内核要维护两个队列：未连接队列和已连接队列，根据 TCP 三次握手过程中的三个分节来分隔这两个队列。收到客户端 syn 分节时在未完成队列中创建一个新的条目，三次握手完成，该条目从未完成连接队列搬到已完成队列尾部。当进程调用 accept 时，从已完成队列中的头部取出一个条目。Netty 哦人的 backlog 为 100.
+
+TCP 参数设置完成后，可以为启动辅助类和其父类分别指定 Handler。
