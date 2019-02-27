@@ -461,7 +461,7 @@ public ServerBootstrap group(EventLoopGroup parentGroup, EventLoopGroup childGro
 }
 ```
 
-其中 acceptorGroup被传入父类构造方法中：
+其中 parentGroup被传入父类构造方法中：
 
 ```java
 public B group(EventLoopGroup group) {
@@ -504,6 +504,13 @@ public T newChannel() {
 
 ReflectiveChannelFactory 根据 Channel 的类型通过反射创建 Channel 的实例。
 
-指定 NioServerSocketChannel 后，需要设置 TCP 的一些参数，作为服务端，主要设置 TCP 的 backlog 参数，backlog 制定了内核为此套接口排队的最大连接个数，对于给定的监听套接口，内核要维护两个队列：未连接队列和已连接队列，根据 TCP 三次握手过程中的三个分节来分隔这两个队列。收到客户端 syn 分节时在未完成队列中创建一个新的条目，三次握手完成，该条目从未完成连接队列搬到已完成队列尾部。当进程调用 accept 时，从已完成队列中的头部取出一个条目。Netty 哦人的 backlog 为 100.
+指定 NioServerSocketChannel 后，需要设置 TCP 的一些参数，作为服务端，主要设置 TCP 的 backlog 参数，backlog 制定了内核为此套接口排队的最大连接个数，对于给定的监听套接口，内核要维护两个队列：未连接队列和已连接队列，根据 TCP 三次握手过程中的三个分节来分隔这两个队列。收到客户端 syn 分节时在未完成队列中创建一个新的条目，三次握手完成，该条目从未完成连接队列搬到已完成队列尾部。当进程调用 accept 时，从已完成队列中的头部取出一个条目。Netty 默认的 backlog 为 100.
 
-TCP 参数设置完成后，可以为启动辅助类和其父类分别指定 Handler。两类的用途不同：子类中的Handler 是 NioServerSocketChannel 对应的 ChannelPipoline 的 Handler；父类中的 Handler 是客户端新接入的连接 SocketChannel 对应的 ChannelPipoline 的Handler。本质区别是：ServerBootstrap 中的Handler 是NioServerSocketChannel 使用的，所有连接该监听端口的客户端都会执行它；父类 AbstractBootstrap 中的 Handler 是个工厂类，它为每个新接入的客户端都创建一个新的 Handler。
+TCP 参数设置完成后，可以为启动辅助类和其父类分别指定 Handler。两类的用途不同：子类中的Handler 是 NioServerSocketChannel 对应的 ChannelPipeline 的 Handler；父类中的 Handler 是客户端新接入的连接 SocketChannel 对应的 ChannelPipoline 的Handler。本质区别是：ServerBootstrap 中的Handler 是NioServerSocketChannel 使用的，所有连接该监听端口的客户端都会执行它；父类 AbstractBootstrap 中的 Handler 是个工厂类，它为每个新接入的客户端都创建一个新的 Handler。
+
+
+
+## 第十五章Bytebuf 和相关辅助类
+
+
+

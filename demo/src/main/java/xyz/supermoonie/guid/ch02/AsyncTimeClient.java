@@ -88,9 +88,10 @@ class AsyncTimeClientHandler implements CompletionHandler<Void, AsyncTimeClientH
                                             try {
                                                 body = new String(bytes, "UTF-8");
                                                 System.out.println("now is: " + body);
-                                                latch.countDown();
                                             } catch (UnsupportedEncodingException e) {
                                                 e.printStackTrace();
+                                            } finally {
+                                                latch.countDown();
                                             }
 
                                         }
@@ -99,9 +100,10 @@ class AsyncTimeClientHandler implements CompletionHandler<Void, AsyncTimeClientH
                                         public void failed(Throwable exc, ByteBuffer attachment) {
                                             try {
                                                 client.close();
-                                                latch.countDown();
                                             } catch (IOException e) {
                                                 e.printStackTrace();
+                                            } finally {
+                                                latch.countDown();
                                             }
                                         }
                                     });
@@ -112,9 +114,10 @@ class AsyncTimeClientHandler implements CompletionHandler<Void, AsyncTimeClientH
                     public void failed(Throwable exc, ByteBuffer attachment) {
                         try {
                             client.close();
-                            latch.countDown();
                         } catch (IOException e) {
                             e.printStackTrace();
+                        } finally {
+                            latch.countDown();
                         }
                     }
                 });
@@ -125,9 +128,10 @@ class AsyncTimeClientHandler implements CompletionHandler<Void, AsyncTimeClientH
         exc.printStackTrace();
         try {
             client.close();
-            latch.countDown();
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            latch.countDown();
         }
     }
 }
