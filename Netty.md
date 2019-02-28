@@ -631,9 +631,138 @@ ByteBuf 的最佳实践：在 I/O 通信线程的读写缓冲区使用 DirectByt
 
   通过校验后，调用 getBytes 方法，该方法由不同的子类实现
 
-- 写操作簇
+- 写操作簇，以 writeBytes(byte[] src, int srcIndex, int length) 为例
 
+  ```java
+  public ByteBuf writeBytes(byte[] src, int srcIndex, int length) {
+      ensureWritable(length);
+      setBytes(writerIndex, src, srcIndex, length);
+      writerIndex += length;
+      return this;
+  }
+  ```
+
+  ```java
+  @Override
+  public ByteBuf ensureWritable(int minWritableBytes) {
+      if (minWritableBytes < 0) {
+          throw new IllegalArgumentException(String.format(
+                  "minWritableBytes: %d (expected: >= 0)", minWritableBytes));
+      }
   
+      if (minWritableBytes <= writableBytes()) {
+          return this;
+      }
+  
+      if (minWritableBytes > maxCapacity - writerIndex) {
+          throw new IndexOutOfBoundsException(String.format(
+                  "writerIndex(%d) + minWritableBytes(%d) exceeds maxCapacity(%d): %s",
+                  writerIndex, minWritableBytes, maxCapacity, this));
+      }
+  
+      // Normalize the current capacity to the power of 2.
+      int newCapacity = calculateNewCapacity(writerIndex + minWritableBytes);
+  
+      // Adjust to the new capacity.
+      capacity(newCapacity);
+      return this;
+  }
+  ```
 
-- 
+  JDK ByteBuffer 一个最大的缺点就是一旦完成分配之后不能动态调整其容量。由于不能确定需要编解码的POJO 的长度，因此只能给出估计值。如果值偏大，会造成内存浪费，如果偏小，当遇到大的 POJO 时就会发生益处异常，这时需要手动捕获这个异常，并重新计算缓冲区的大小。
+
+  Netty ByteBuf 可以动态扩展，允许指定最大容量，在容量范围内，先分配一个较小的初始容量，后面不够可以动态扩展。
+
+  ```java
+  private int calculateNewCapacity(int minNewCapacity) {
+      final int maxCapacity = this.maxCapacity;
+      final int threshold = 1048576 * 4; // 4 MiB page
+  
+      if (minNewCapacity == threshold) {
+          return threshold;
+      }
+  
+      // If over threshold, do not double but just increase by threshold.
+      if (minNewCapacity > threshold) {
+          int newCapacity = minNewCapacity / threshold * threshold;
+          if (newCapacity > maxCapacity - threshold) {
+              newCapacity = maxCapacity;
+          } else {
+              newCapacity += threshold;
+          }
+          return newCapacity;
+      }
+  
+      // Not over threshold. Double up to 4 MiB, starting from 64.
+      int newCapacity = 64;
+      while (newCapacity < minNewCapacity) {
+          newCapacity <<= 1;
+      }
+  
+      return Math.min(newCapacity, maxCapacity);
+  }
+  ```
+
+  首先设置阈值为 4MB，当需要的新容量正好等于阈值时，使用阈值作为缓冲区容量。如果新申请的内存空间大于阈值，不能采用倍增的方式（放置内存膨胀和浪费），而是采用每次步进 4MB 的方式进行扩张。扩张的时候需要对扩张后的内存和最大内存进行比较，如果大于缓冲区的最大长度，则使用 maxCapacity 作为扩张后的缓冲区容量。如果扩张后的新容量小于阈值，则以 64 为计数进行倍增，直到倍增后的结果大于或等于需要的容量值。
+
+  采用倍增或步进算法的原因是：如果以 minNewCapacity 作为目标容量，则本次扩容后的可写字节数刚好够本次写入使用。写入完成后，可写字节数会变为 0，下次写入操作时，需要再次动态扩张。这样第一次扩张后的每次写入操作都要进行动态扩张，频繁的内存复制会导致性能下降。
+
+  采用先倍增后步进的原因是：当内存较小的情况下，倍增操作并不会造成太多的内存浪费。但当内存增长到一定阈值后继续使用倍增操作可能会带来额外的内存浪费。
+
+- 操作索引，以 readerIndex(int readerIndex) 为例
+
+  ```java
+  public ByteBuf readerIndex(int readerIndex) {
+      if (readerIndex < 0 || readerIndex > writerIndex) {
+          throw new IndexOutOfBoundsException(String.format(
+                  "readerIndex: %d (expected: 0 <= readerIndex <= writerIndex(%d))", readerIndex, writerIndex));
+      }
+      this.readerIndex = readerIndex;
+      return this;
+  }
+  ```
+
+- 重用缓冲区
+
+  ```java
+  public ByteBuf discardReadBytes() {
+      ensureAccessible();
+      if (readerIndex == 0) {
+          return this;
+      }
+  
+      if (readerIndex != writerIndex) {
+          setBytes(0, this, readerIndex, writerIndex - readerIndex);
+          writerIndex -= readerIndex;
+          adjustMarkers(readerIndex);
+          readerIndex = 0;
+      } else {
+          adjustMarkers(readerIndex);
+          writerIndex = readerIndex = 0;
+      }
+      return this;
+  }
+  ```
+
+  ```java
+  protected final void adjustMarkers(int decrement) {
+      int markedReaderIndex = this.markedReaderIndex;
+      if (markedReaderIndex <= decrement) {
+          this.markedReaderIndex = 0;
+          int markedWriterIndex = this.markedWriterIndex;
+          if (markedWriterIndex <= decrement) {
+              this.markedWriterIndex = 0;
+          } else {
+              this.markedWriterIndex = markedWriterIndex - decrement;
+          }
+      } else {
+          this.markedReaderIndex = markedReaderIndex - decrement;
+          markedWriterIndex -= decrement;
+      }
+  }
+  ```
+
+- skipBytes
+
+  丢弃或跳过不需要读区的字节或字节数组。
 
