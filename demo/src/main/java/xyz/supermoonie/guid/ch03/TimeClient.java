@@ -2,6 +2,7 @@ package xyz.supermoonie.guid.ch03;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -9,8 +10,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 /**
- *
- *
  * @author Administrator
  * @date 2018/2/27 0027
  */
@@ -55,6 +54,7 @@ public class TimeClient {
 
         public TimeClientHandler() {
             byte[] req = "QUERY TIME ORDER".getBytes();
+//            firstMessage = PooledByteBufAllocator.DEFAULT.heapBuffer(1024);
             firstMessage = Unpooled.buffer(req.length);
             firstMessage.writeBytes(req);
         }

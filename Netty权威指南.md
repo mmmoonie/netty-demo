@@ -512,5 +512,128 @@ TCP 参数设置完成后，可以为启动辅助类和其父类分别指定 Han
 
 ## 第十五章Bytebuf 和相关辅助类
 
+### 15.1 ByteBuf 功能说明
 
+ByteBuffer 的局限性：
+
+- ByteBuffer 长度固定，不能动态扩展和伸缩
+- ByteBuffer 只有一个标识位置的指针 position，读写时需调用 flip() 和 rewind()，增加了复杂性
+- ByteBuffer 的功能有限，不支持一些高级的功能和特性
+
+#### 15.1.1 ByteBuf 的工作原理
+
+ByteBuf 通过两个位置指针来协助缓冲区的读写操作，读操作使用 readerIndex ，写操作使用 writerIndex 。
+
+readerIndex 和 writerIndex 的取值一开始都是 0，随着数据的写入 writerIndex 会增加，读取数据会使 readerIndex 增加，但不会超过 writerIndex。在读取之后，0 ~ readerIndex 被视为 discard 的，调用 discardReadBytes 方法，可释放这部分空间。readerIndex 和 writerIndex 之间的数据是可读的。writerIndex 和 capacity 之间的空间是可写的。
+
+ByteBuf 的动态扩展：ByteBuf 对 write 操作进行了封装，由 ByteBuf 的 write 操作负责进行剩余可用空间的校验。如果可用缓冲区不足，ByteBuf 会自动进行动态扩展。考虑到性能，应该尽量避免缓冲区的复制。
+
+#### 15.1.2 ByteBuf 的功能说明
+
+- 顺序读操作（read）类似于ByteBuffer 的 get 操作
+
+- 顺序写操作（write）类似于 ByteBuffer 的 put 操作
+
+- Discardable bytes，相比于其他的 Java 对象，缓冲区的分配和释放是个耗时的操作。由于缓冲区的动态扩张需要进行字节数组的复制，这是个耗时的操作，因此应尽量重用缓冲区，然而，调用 discardReadBytes 会发生字节数组的内存复制，因此，频繁调用将会导致性能下降。
+
+- Clear 操作，并不会清空缓冲区中内容，而是将 readerIndex 和 writerIndex 还原为初始值
+
+- Mark 和 Reset ，因为 ByteBuf 有读索引和写索引，因此有 4  个相关的方法：
+
+  - markReaderIndex
+  - resetReaderIndex
+  - markWriterIndex
+  - resetWriterIndex
+
+- 查找操作
+
+  - indexOf(int fromIndex, int toIndex, byte value)
+  - bytesBefore(byte value)：从 readereIndex 到 writerIndex 中查找
+  - bytesBefore(int length, byte value)：从 readerIndex 到 readerIndex + length 中查找
+  - bytesBefore(int index, int length, byte value)：从 index 到 index + length 中查找
+  - forEachByte(ByteBufProcessor processor)：遍历可读字节数组，与 ByteBufferProcessor 设置的条件进行比较
+  - forEachByte(int index, int length, ByteBufProcessor processor)
+  - forEachByteDesc(ByteBufProcessor processor)：逆序遍历可读字节数组进行查找
+  - forEachByteDesc(int index, int length, ByteBufProcessor processor)
+
+  ByteBufProcessor 对常用的查找字节进行了抽象：
+
+  - FIND_NUL: NUL (0X00)
+  - FIND_CR: CR ('\r')
+  - FIND_LF: LF('\n')
+  - FIND_CRLF: CR ('\r') 或 LF ('\n')
+  - FIND_LINEAR_WHITESPACE: '    ' 或 '\t'
+
+- Derived buffers
+
+  - duplicate：复制，拥有独立索引，持有同一个内容指针引用
+  - copy：内容与索引都是独立的
+  - copy(int index, int lenght)：内容与索引都是独立的
+  - slice：返回可读子缓冲区，内容共享，索引独立
+  - slice(int index, int length)
+
+- 转换成标准的 ByteBuffer
+
+  - nioBuffer()：共享同一个缓冲区内容的应用
+  - nioBuffer(int index, int length)：共享同一个缓冲区内容的引用
+
+- 随机读写（set 和 get）
+
+  无论是 set 还是 get ，ByteBuf 都会对索引和长度进行合法性校验，但 set 与 write 的不同是 set 不支持动态扩展缓冲区
+
+### 15.2 ByteBuf 源码分析
+
+#### 15.2.1 ByteBuf 的主要类继承关系
+
+![./assets/NETTY-1.png](./assets/NETTY-1.png)
+
+从内存分配上看，ByteBuf 分为两类：
+
+- 堆内存（HeapByteBuf）字节缓冲区：内存的分配回收块，可以被 JVM 自动回收，但如果进行 Socket 的 I/O 读写，需要做一次额外的内存复制，性能有所下降
+- 直接内存（DirectByteBuf）字节缓冲区：在堆外进行内存分配，分配回收慢，但不需要从Socket Channel 中复制
+
+ByteBuf 的最佳实践：在 I/O 通信线程的读写缓冲区使用 DirectByteBuf，后端业务消息的编解码使用 HeapByteBuf
+
+从内存回收的角度看，ByteBuf  也分为两类：
+
+- 基于对象池的ByteBuf：可重用 ByteBuf 对象，自己维护一个内存池，可以循环利用创建的 ByteBuf，提升内存使用效率，降低高负载下的频繁 GC
+- 普通的ByteBuf
+
+#### 15.2.2 AbstractByteBuf 源码分析
+
+- 主要成员变量
+
+  读索引、写索引、mark、最大容量等公共属性需要定义，所有的 ByteBuf 共享一个 ResourceLeakDetector ，ResourceLeakDetector 主要用于检测对象是否泄漏。
+
+- 读操作簇，以 readBytes(byte[] dst, int dstIndex, int length) 为例
+
+  ```java
+  public ByteBuf readBytes(byte[] dst, int dstIndex, int length) {
+      checkReadableBytes(length);
+      getBytes(readerIndex, dst, dstIndex, length);
+      readerIndex += length;
+      return this;
+  }
+  
+  protected final void checkReadableBytes(int minimumReadableBytes) {
+      ensureAccessible();
+      if (minimumReadableBytes < 0) {
+          throw new IllegalArgumentException("minimumReadableBytes: " + minimumReadableBytes + " (expected: >= 0)");
+      }
+      if (readerIndex > writerIndex - minimumReadableBytes) {
+          throw new IndexOutOfBoundsException(String.format(
+                  "readerIndex(%d) + length(%d) exceeds writerIndex(%d): %s",
+                  readerIndex, minimumReadableBytes, writerIndex, this));
+      }
+  }
+  
+  ```
+
+  通过校验后，调用 getBytes 方法，该方法由不同的子类实现
+
+- 写操作簇
+
+  
+
+- 
 
