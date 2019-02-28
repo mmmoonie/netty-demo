@@ -766,3 +766,100 @@ ByteBuf 的最佳实践：在 I/O 通信线程的读写缓冲区使用 DirectByt
 
   丢弃或跳过不需要读区的字节或字节数组。
 
+#### 15.2.3 AbstractReferenceCountedByteBuf 源码分析
+
+- 成员变量
+
+  ```java
+  private static final AtomicIntegerFieldUpdater<AbstractReferenceCountedByteBuf> refCntUpdater =
+          AtomicIntegerFieldUpdater.newUpdater(AbstractReferenceCountedByteBuf.class, "refCnt");
+  
+  private static final long REFCNT_FIELD_OFFSET;
+  
+  static {
+      long refCntFieldOffset = -1;
+      try {
+          if (PlatformDependent.hasUnsafe()) {
+              refCntFieldOffset = PlatformDependent.objectFieldOffset(
+                      AbstractReferenceCountedByteBuf.class.getDeclaredField("refCnt"));
+          }
+      } catch (Throwable t) {
+          // Ignored
+      }
+  
+      REFCNT_FIELD_OFFSET = refCntFieldOffset;
+  }
+  
+  @SuppressWarnings("FieldMayBeFinal")
+  private volatile int refCnt = 1;
+  ```
+
+  refCntUpdater 通过原子的方式对成员变量进行更新操作，以实现线程安全，消除锁。
+
+  REFCNT_FIELD_OFFSET 用于标示 refCnt 在 AbstractReferenceCountedByteBuf 中的内存地址，该内存地址的获取与 JDK 实现强相关。
+
+  refCnt 用于跟踪对象的引用计数。
+
+- 对象引用计数器
+
+  ```java
+  public ByteBuf retain() {
+      for (;;) {
+          int refCnt = this.refCnt;
+          if (refCnt == 0) {
+              throw new IllegalReferenceCountException(0, 1);
+          }
+          if (refCnt == Integer.MAX_VALUE) {
+              throw new IllegalReferenceCountException(Integer.MAX_VALUE, 1);
+          }
+          if (refCntUpdater.compareAndSet(this, refCnt, refCnt + 1)) {
+              break;
+          }
+      }
+      return this;
+  }
+  ```
+
+  每调用一次 retain() 引用计数器就会加一，通过自旋对引用计数器进行加一。
+
+  ```java
+  public final boolean release() {
+      for (;;) {
+          int refCnt = this.refCnt;
+          if (refCnt == 0) {
+              throw new IllegalReferenceCountException(0, -1);
+          }
+  
+          if (refCntUpdater.compareAndSet(this, refCnt, refCnt - 1)) {
+              if (refCnt == 1) {
+                  deallocate();
+                  return true;
+              }
+              return false;
+          }
+      }
+  }
+  ```
+
+  调用 release() 释放引用计数器，当 refCnt == 1 时，意味着申请与释放相等，对象引用已经不可达，该对象需要被释放和垃圾回收掉。
+
+#### 15.2.4 UnpooledHeapByteBuf 源码分析
+
+UnpooledHeapByteBuf 是基于堆内存进行内存分配的字节缓冲区，没有基于对象池技术实现，意味着每次 I/O 的读写都会创建一个新的 UnpooledHeapByteBuf，频繁进行大块内存的分配和回收对性能会有一定的影响，但比堆外内存的申请和释放，它的成本会低一些。
+
+相比较于 PooledHeapByteBuf ，UnpooledHeapByteBuf 实现简单，也不容易出现内存管理上的问题，因此在性能满足的情况下，尽量使用 UnpooledHeapByteBuf。
+
+- 成员变量
+
+  ```java
+  private final ByteBufAllocator alloc;
+  private byte[] array;
+  private ByteBuffer tmpNioBuf;
+  ```
+
+  ByteBufAllocator 用于 UnpooledHeapByteBuf 的内存分配，tmpNioBuf 用于实现 Netty ByteBuf 到 Java ByteBuffer 的转换。
+
+- 动态扩展缓冲区
+
+- 
+
