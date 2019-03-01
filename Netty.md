@@ -861,5 +861,127 @@ UnpooledHeapByteBuf 是基于堆内存进行内存分配的字节缓冲区，没
 
 - 动态扩展缓冲区
 
-- 
+  ```java
+  public ByteBuf capacity(int newCapacity) {
+      ensureAccessible();
+      if (newCapacity < 0 || newCapacity > maxCapacity()) {
+          throw new IllegalArgumentException("newCapacity: " + newCapacity);
+      }
+  
+      int oldCapacity = array.length;
+      if (newCapacity > oldCapacity) {
+          byte[] newArray = new byte[newCapacity];
+          System.arraycopy(array, 0, newArray, 0, array.length);
+          setArray(newArray);
+      } else if (newCapacity < oldCapacity) {
+          byte[] newArray = new byte[newCapacity];
+          int readerIndex = readerIndex();
+          if (readerIndex < newCapacity) {
+              int writerIndex = writerIndex();
+              if (writerIndex > newCapacity) {
+                  writerIndex(writerIndex = newCapacity);
+              }
+              System.arraycopy(array, readerIndex, newArray, readerIndex, writerIndex - readerIndex);
+          } else {
+              setIndex(newCapacity, newCapacity);
+          }
+          setArray(newArray);
+      }
+      return this;
+  }
+  ```
+
+  判断新的容量值是否大于当前的缓冲区容量，如果大于则需要进行动态扩容，然后通过 System.arraycopy 进行内存复制。如果新的容量小于当前的缓冲区容量，则不需要动态扩容，但需要创建一个新的缓冲区：首先判断读索引是否小于新的容量值，如果小于进一步判断写索引是否大于新的容量值，如果大于则将写索引设置为新的容量值，然后进行内存复制；如果读索引大于等于新的容量值，则丢弃读索引后面的收据，将读写索引设置为新的容量值。
+
+- 字节数组复制
+
+  ```java
+  public ByteBuf setBytes(int index, byte[] src, int srcIndex, int length) {
+      checkSrcIndex(index, length, srcIndex, src.length);
+      System.arraycopy(src, srcIndex, array, index, length);
+      return this;
+  }
+  ```
+
+- 转换成 JDK ByteBuffer
+
+  ```java
+  public static ByteBuffer wrap(byte[] array,
+                                  int offset, int length)
+  {
+      try {
+          return new HeapByteBuffer(array, offset, length);
+      } catch (IllegalArgumentException x) {
+          throw new IndexOutOfBoundsException();
+      }
+  }
+  ```
+
+  ```java
+  public ByteBuffer nioBuffer(int index, int length) {
+      ensureAccessible();
+      return ByteBuffer.wrap(array, index, length).slice();
+  }
+  ```
+
+- 子类实现相关的方法
+
+  - idDirect() ：基于堆内存实现的 ByteBuffer ，返回 false
+  - hasArray() ：基于字节数组实现，返回 true
+  - array() ：基于字节数组实现，返回内部的字节数组变量
+  - 其他本地相关的方法：arrayOffset()、hasMemoryAddress()、memoryAddress()
+
+#### 15.2.5 PooledByteBuf 内存池原理分析
+
+- PoolArena
+
+  Netty 的内存池实现类，PoolArena 是由多个 Chunk 组成的大块内存区域，每个 Chunk 则由一个或者多个 Page 组成。
+
+- PoolChunk
+
+  Chunk 主要用来组织和管理多个 Page 的内存分配和释放，在 Netty 中，Chunk 中的Page 被构建成一棵二叉树。
+
+- PoolSubpage
+
+  每个 Page 会被分成大小相等的多个存储块，存储块的大小由第一次申请的内存块大小决定。
+
+- 内存回收策略
+
+#### 15.2.6 PooledDirectByteBuf 源码分析
+
+与 UnPooledDirectByteBuf 唯一的不同就是内存分配策略不同。
+
+- 创建字节缓冲区实例
+
+  ```java
+  static PooledDirectByteBuf newInstance(int maxCapacity) {
+      PooledDirectByteBuf buf = RECYCLER.get();
+      buf.setRefCnt(1);
+      buf.maxCapacity(maxCapacity);
+      return buf;
+  }
+  ```
+
+- 复制新的字节缓冲区实例
+
+  copy(int index, int length) newDirectBuffer()
+
+- 子类实现相关的方法
+
+### 15.3 ByteBuf 相关的辅助类
+
+- ByteBufHolder：ByteBuf 的容器
+- ByteBufAllocator：字节缓冲区的分配器，按照缓冲区实现不同，分为两种：
+  - 基于内存池的字节缓冲区
+  - 普通的字节缓冲区
+- CompositeByteBuf：允许将多个 ByteBuf 的实例组装在一起
+- ByteBufUtil：
+  - encodeString(ByteBufAllocator alloc, CharBuffer src, Charset charset)
+  - decodeString(ByteBuffer src, Charset charset)
+
+## 第十六章 Channel 和 Unsafe
+
+
+
+  
 
