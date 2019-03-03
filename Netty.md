@@ -981,7 +981,50 @@ UnpooledHeapByteBuf 是基于堆内存进行内存分配的字节缓冲区，没
 
 ## 第十六章 Channel 和 Unsafe
 
+### 16.1 Channel  功能说明
 
+#### 16.1.1 Channel 的工作原理
+
+不适用JDK NIO 原生Channel 的原因：
+
+- JDK 的 SocketChannel 和 ServerSocketChannel 没有统一的 Channel 接口
+- JDK 的 SocketChannel 和 ServerSocketChannel 是 SPI 类接口，扩展难度大
+- Netty 的 Channel 能够跟 Netty 的整体架构融合在一起
+- 自定义的 Channel 功能实现更灵活
+
+Netty Channel 的主要设计理念：
+
+- Channel 接口采用 Facade 模式统一封装
+- Channel 接口尽量大而全，为 SocketChannel 和 ServerSocketChannel 提供统一的视图
+- 采用聚合而非包含的方式，将相关的功能类聚合在 Channel 中
+
+#### 16.1.2 Channel 的功能介绍
+
+1. 网络I/O操作
+   1. Channel read()：从当前的 Channel 中读取数据到第一个 inbound 缓冲区中，如果数据被成功读取，触发ChannelHandler.channelRead(ChannelHandlerContext, Object) 事件。读取操作 API 调用完成后，紧接着会触发 ChannelHandler.channelReadComplete(ChannelHandlerContext) 事件，这样业务的 ChannelHandler 可以决定是否需要继续读取数据。如果已经有读操作请求被挂起，则后续的读操作会被忽略。
+   2. ChannelFuture write(Object msg)：将当前的 msg 通过 ChannelPipeline 写入到目标 Channel 中。write  操作只是将消息存入发送环形数组中，并没有真正被发送，只有调用 flush 才会被写入到 Channel 中。
+   3. ChannelFuture write(Object msg, ChannelPromise promise)：与 write 相同，但携带了 ChannelPromise 负责设置写入操作的结果
+   4. ChannelFuture writeAndFlush(Objecg msg, ChannelPromise promie)：等价于方法 3 再加上 flush 调用
+   5. ChannelFuture writeAndFlush(Object msg)：write + flush
+   6. Channel flush()：将之前存入发送环形数组的信息全部写入到目标 Channel 中。
+   7. ChannelFuture close(ChannelPromise promise)：主动关闭当前连接，通过 ChannelPromise 设置操作结果并进行结果通知，无论操作是否成功，都可以通过 ChannelPromise 获取操作结果。该操作会级联触发ChannelPipeline 中所有 ChannelHandler 的 ChannelHandler.close(ChannelHandlerContext, ChannelPromise) 事件
+   8. ChannelFuture disconnect(ChannelPromise promise)：请求断开连接并使用 ChannelPromise 来获取操作结果的通知消息。该方法会级联触发 ChannelHandler.disconnect(ChannelHandlerContext, ChannelPromise) 事件
+   9. ChannelFuture connect(SocketAddress remoteAddress)：向 remoteAddress 发起连接请求，如果连接应答超时，ChannelFuture 中的结果就是 ConnectTimeoutException ；如果连接被拒绝，操作结果为 ConnectException 。该方法会级联触发 ChannelHandler.connect(ChannelHandlerContext, SocketAddress, SocketAddress, ChannelPromise) 事件
+   10. ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress)：先绑定指定的本地地址后再连接服务端
+   11. ChannelFuture connect(SocketAddress remoteAddress, ChannelPromise promise)：携带了 ChannelPromise 参数用于写入操作结果
+   12. connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise)
+   13. ChannelFuture bind(SocketAddress localAddress)：绑定本地 Socket 地址，该方法会级联触发 ChannelHandler.bind(ChannelHandlerContext, SocketAddress, ChannelPromise) 事件
+   14. ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise)
+   15. ChannelConfig config()：获取当前 Channel 的配置信息
+   16. boolean isOpen()：判断当前 Channel 是否打开
+   17. boolean isRegistered()：判断当前Channel 是否已经注册到 EventLoop 上
+   18. boolean isActive()：判断当前 Channel 是否已经处于激活状态
+   19. ChannelMetadata metadata()：获取当前 Channel 的元数据描述信息，包括 TCP 参数配置
+   20. SocketAddress localAddress()：获取当前 Channel 的本地绑定地址
+   21. SocketAddress remoteAddress()：获取当前Channel 的远程 Socket 地址
+2. 其他常用的API 功能说明
+3. 
+4. 
 
   
 
