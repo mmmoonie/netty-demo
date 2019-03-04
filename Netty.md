@@ -1023,8 +1023,126 @@ Netty Channel 的主要设计理念：
    20. SocketAddress localAddress()：获取当前 Channel 的本地绑定地址
    21. SocketAddress remoteAddress()：获取当前Channel 的远程 Socket 地址
 2. 其他常用的API 功能说明
+   1. eventLoop()：获取Channel 注册的EventLoop。EventLoop 本质上就是处理网络读写事件的 Reactor 线程。
+   2. metadata()：在 Netty 中，每个 Channel 对应一个物理连接，每个连接都有自己的TCP 参数配置。Channel 会聚合一个 ChannelMetadata 用来对 TCP 参数提供元数据描述信息，通过 metadata() 可以获取当前 Channel 的 TCP 配置参数。
+   3. parent()：对于服务端 Channel 而言，它的父 Channel 为空；对于客户端 Channel 而言，它的父 Channel 就是创建它的 ServerSocketChannel。
+   4. id()：返回 ChannelId 对象，ChannelId 是Channel 的唯一标识。
+
+### 16.2 Channel 源码分析
+
+#### 16.2.1 Channel 的主要继承关系类图
+
+服务端 NioServerSocketChannel 的继承关系类图：
+
+![./assets/NETTY-2.png](./assets/NETTY-2.png)
+
+  客户端 NioSocketChannel 类图：
+
+![./assets/NETTY-3.png](./assets/NETTY-3.png)
+
+#### 16.2.2 AbstractChannel 源码分析
+
+1. 成员变量定义
+
+   ```java
+   static final ClosedChannelException CLOSED_CHANNEL_EXCEPTION = new ClosedChannelException();
+   static final NotYetConnectedException NOT_YET_CONNECTED_EXCEPTION = new NotYetConnectedException();
+   
+   static {
+       CLOSED_CHANNEL_EXCEPTION.setStackTrace(EmptyArrays.EMPTY_STACK_TRACE);
+       NOT_YET_CONNECTED_EXCEPTION.setStackTrace(EmptyArrays.EMPTY_STACK_TRACE);
+   }
+   
+   private MessageSizeEstimator.Handle estimatorHandle;
+   
+   private final Channel parent;
+   private final ChannelId id = DefaultChannelId.newInstance();
+   private final Unsafe unsafe;
+   private final DefaultChannelPipeline pipeline;
+   private final ChannelFuture succeededFuture = new SucceededChannelFuture(this, null);
+   private final VoidChannelPromise voidPromise = new VoidChannelPromise(this, true);
+   private final VoidChannelPromise unsafeVoidPromise = new VoidChannelPromise(this, false);
+   private final CloseFuture closeFuture = new CloseFuture(this);
+   
+   private volatile SocketAddress localAddress;
+   private volatile SocketAddress remoteAddress;
+   private final EventLoop eventLoop;
+   private volatile boolean registered;
+   
+   /** Cache for the string representation of this channel */
+   private boolean strValActive;
+   private String strVal;
+   ```
+
+   estimatorHandle 用于预测下一个报文的大小，它基于之前数据的采样进行分析预测。
+
+   AbstracChannel 采用聚合的方式封装各种功能，如果功能与子类强相关，则定义成抽象方法由子类具体实现，从成员变量来看，聚合了以下内容：
+
+   - parent：代表父类 Channel
+   - id：采用默认方式生成的全局唯一 ID
+   - unsafe：Unsafe 实例
+   - pipeline：当前 Channel 对应的 DefaultChannelPipeline
+   - eventLoop：当前 Channel 注册的 EventLoop
+   - ....
+
+2. 核心 API 源码分析
+
+   Netty 基于事件驱动，当 Channel 进行 I/O 操作时会产生相应的 I/O 事件，然后驱动事件在 ChannelPipeline 中传播。网络 I/O 操作直接调用 DefaultChannelPipeline 的相应方法，由 DefaultChannelPipeline 中相应的 ChannelHandler 进行具体的逻辑处理。
+
+   ```java
+   @Override
+   public ChannelFuture bind(SocketAddress localAddress) {
+       return pipeline.bind(localAddress);
+   }
+   
+   @Override
+   public ChannelFuture connect(SocketAddress remoteAddress) {
+       return pipeline.connect(remoteAddress);
+   }
+   
+   @Override
+   public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress) {
+       return pipeline.connect(remoteAddress, localAddress);
+   }
+   
+   @Override
+   public ChannelFuture disconnect() {
+       return pipeline.disconnect();
+   }
+   
+   @Override
+   public ChannelFuture close() {
+       return pipeline.close();
+   }
+   ```
+
+#### 16.2.3 AbstractNioChannel 源码分析
+
+1. 成员变量定义
+
+   ```java
+   // 用于设置 SelectableChannel 参数和进行 I/O 操作
+   private final SelectableChannel ch;
+   // 代表 JDK SelectionKey 的 OP_READ
+   protected final int readInterestOp;
+   // Channel 注册到 EventLoop 后返回的选择键，由于Channel 会面临多个线程的并发写操作，
+   // 当 SelectionKey 修改之后，为了能让其他线程感知到变化，所以需要使用 volatile 保证
+   // 修改的可见性
+   private volatile SelectionKey selectionKey;
+   private volatile boolean inputShutdown;
+   
+   /**
+    * The future of the current connection attempt.  If not null, subsequent
+    * connection attempts will fail.
+    */
+   // 代表连接操作结果的 ChannelPromise
+   private ChannelPromise connectPromise;
+   // 连接超时定时器
+   private ScheduledFuture<?> connectTimeoutFuture;
+   // 请求的通信地址信息
+   private SocketAddress requestedRemoteAddress;
+   ```
+
+2. 核心 API 源码分析
+
 3. 
-4. 
-
-  
-
