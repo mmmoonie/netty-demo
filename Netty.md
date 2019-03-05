@@ -603,6 +603,19 @@ ByteBuf 的最佳实践：在 I/O 通信线程的读写缓冲区使用 DirectByt
 
 - 主要成员变量
 
+  ```java
+  static final ResourceLeakDetector<ByteBuf> leakDetector = new ResourceLeakDetector<ByteBuf>(ByteBuf.class);
+  
+  int readerIndex;
+  private int writerIndex;
+  private int markedReaderIndex;
+  private int markedWriterIndex;
+  
+  private int maxCapacity;
+  
+  private SwappedByteBuf swappedBuf;
+  ```
+
   读索引、写索引、mark、最大容量等公共属性需要定义，所有的 ByteBuf 共享一个 ResourceLeakDetector ，ResourceLeakDetector 主要用于检测对象是否泄漏。
 
 - 读操作簇，以 readBytes(byte[] dst, int dstIndex, int length) 为例
